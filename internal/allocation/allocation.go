@@ -241,6 +241,9 @@ const rtpMTU = 1600
 func (a *Allocation) packetHandler(manager *Manager) {
 	buffer := make([]byte, rtpMTU)
 
+	allowAllIp, _ := net.ResolveIPAddr("tcp", "0.0.0.0:0")
+	allowAll := a.GetPermission(allowAllIp)
+
 	for {
 		n, srcAddr, err := a.RelaySocket.ReadFrom(buffer)
 		if err != nil {
@@ -264,7 +267,7 @@ func (a *Allocation) packetHandler(manager *Manager) {
 			if _, err = a.TurnSocket.WriteTo(channelData.Raw, a.fiveTuple.SrcAddr); err != nil {
 				a.log.Errorf("Failed to send ChannelData from allocation %v %v", srcAddr, err)
 			}
-		} else if p := a.GetPermission(srcAddr); p != nil {
+		} else if p := a.GetPermission(srcAddr); p != nil || allowAll != nil {
 			udpAddr, ok := srcAddr.(*net.UDPAddr)
 			if !ok {
 				a.log.Errorf("Failed to send DataIndication from allocation %v %v", srcAddr, err)
